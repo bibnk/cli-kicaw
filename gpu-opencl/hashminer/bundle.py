@@ -1,4 +1,4 @@
-"""eth_sendBundle submission to MEV builders (Flashbots / Beaverbuild / Titan / Rsync / ...).
+"""eth_sendBundle submission to MEV builders (Flashbots / Beaverbuild / Titan).
 
 A bundle is N pre-signed transactions that the builder includes together, in order, in
 its block. For HASH256 this is the proven way to sweep multiple mints in a single block:

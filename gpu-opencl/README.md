@@ -179,8 +179,8 @@ Key points:
 ### Bundle mode (opt-in) — eth_sendBundle to MEV builders
 
 The proven way to sweep multiple mints out of one block: pre-sign N `mine()` txs at consecutive
-tx-nonces and ship them as one atomic unit to block builders (Flashbots, Beaverbuild, Titan,
-Rsync, securerpc). If the bundle lands, all N mints get included before any public-mempool
+tx-nonces and ship them as one atomic unit to block builders (Flashbots, Beaverbuild, Titan).
+If the bundle lands, all N mints get included before any public-mempool
 competitor — that's how `0x501d…` swept all 10 slots in block 25069006.
 
 Enable in `miner.toml`:
@@ -235,8 +235,8 @@ hashminer run
 hashminer run --config miner.toml --log-level DEBUG
 
 # 3) BUNDLE MODE — the block-sweep play. Pre-signs 10 mine() txs with consecutive
-#    tx-nonces and ships them as one eth_sendBundle to Flashbots / Beaverbuild / Titan /
-#    Rsync / securerpc every block. The bundled txs are ALSO broadcast via your RPC as a
+#    tx-nonces and ships them as one eth_sendBundle to Flashbots / Beaverbuild / Titan
+#    every block. The bundled txs are ALSO broadcast via your RPC as a
 #    safety net so a missed bundle doesn't strand the tx-nonce queue.
 hashminer run --bundle
 
@@ -322,7 +322,7 @@ asserts a `Mined` event landed and the account's $HASH balance went up. It skips
 | `hashminer/config.py` | `miner.toml` + env loading; key handling |
 | `hashminer/constants.py` | on-chain constants + the PoW in pure Python (ground truth for the kernel) |
 | `hashminer/abi.py` | bundled contract ABI (`scripts/fetch_abi.py` regenerates it) |
-| `hashminer/bundle.py` | optional `eth_sendBundle` path to Flashbots / Beaverbuild / Titan / Rsync / securerpc |
+| `hashminer/bundle.py` | optional `eth_sendBundle` path to Flashbots / Beaverbuild / Titan |
 | `reference/` | the verified `Hash.sol`, its metadata, and `SPEC.md` |
 
 ## Tuning / notes

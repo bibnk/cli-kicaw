@@ -71,8 +71,6 @@ class BundleConfig:
         "https://relay.flashbots.net",      # Flashbots (X-Flashbots-Signature; we use an ephemeral key)
         "https://rpc.beaverbuild.org",
         "https://rpc.titanbuilder.xyz",
-        "https://rpc.rsync-builder.xyz",
-        "https://api.securerpc.com/v1",    # securerpc fronts Flashbots
     ])
 
 

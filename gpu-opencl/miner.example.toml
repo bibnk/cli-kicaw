@@ -53,7 +53,7 @@ max_pending_per_epoch = 1000        # MAX_MINTS_PER_BLOCK * EPOCH_BLOCKS = 10 * 
 # --------------------------------------------------------------------------- bundle mode
 # OPT-IN. When enabled, instead of submitting each found nonce as a single tx, the miner
 # buffers solutions and on every new block ships up to `size` of them as one atomic
-# `eth_sendBundle` to MEV builders (Flashbots / Beaverbuild / Titan / Rsync / securerpc).
+# `eth_sendBundle` to MEV builders (Flashbots / Beaverbuild / Titan).
 # A bundle that lands gets all N txs included consecutively — the proven way to sweep a
 # block's 10 slots from a single address. The bundle's txs are ALSO broadcast to the
 # regular RPC as a safety net so a missed bundle doesn't leave the tx-nonce queue stuck.
@@ -65,12 +65,10 @@ max_pending_per_epoch = 1000        # MAX_MINTS_PER_BLOCK * EPOCH_BLOCKS = 10 * 
 # enabled              = true
 # size                 = 10        # txs per bundle (per-block cap is 10)
 # target_blocks_ahead  = 1         # target block N+1 on every new block tick
-# priority_gwei        = 5.0       # overrides [gas].priority_gwei for bundle txs (null = reuse it)
+# priority_gwei        = 6.0       # overrides [gas].priority_gwei for bundle txs (null = reuse it)
 # submit_concurrency   = 4
 # endpoints = [
 #     "https://relay.flashbots.net",
 #     "https://rpc.beaverbuild.org",
 #     "https://rpc.titanbuilder.xyz",
-#     "https://rpc.rsync-builder.xyz",
-#     "https://api.securerpc.com/v1",
 # ]

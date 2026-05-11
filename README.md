@@ -62,6 +62,11 @@ enabled = true
 size = 10
 target_blocks_ahead = 1
 priority_gwei = 6.0
+endpoints = [
+    "https://relay.flashbots.net",
+    "https://rpc.beaverbuild.org",
+    "https://rpc.titanbuilder.xyz",
+]
 ```
 
 ## Run mining
