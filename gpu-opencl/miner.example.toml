@@ -1,0 +1,75 @@
+# hash256-miner configuration TEMPLATE.
+#
+#   cp miner.example.toml miner.toml
+#   # then edit miner.toml — it's gitignored, so your RPC key / personal settings stay local.
+#
+# Private keys are NEVER read from this file. Provide the miner's key via either:
+#   - the HASH256_PRIVATE_KEY environment variable (a 0x-prefixed hex key), or
+#   - wallet.key_file below (a path to a file containing that hex key).
+# Use a DEDICATED BURNER KEY with only enough ETH for gas — not your main wallet.
+
+[network]
+# Public mainnet RPCs by default (rate-limited, higher-latency — fine for dev / --dry-run /
+# casual mining). For serious mining, point this at your own node or a paid provider
+# (Alchemy / Infura / QuickNode / etc.) — replace this URL.
+rpc_url       = "https://ethereum-rpc.publicnode.com"
+rpc_fallbacks = ["https://eth.llamarpc.com", "https://rpc.ankr.com/eth", "https://eth.drpc.org", "https://cloudflare-eth.com"]
+# ws_url      = "wss://..."        # reserved; this version polls eth_blockNumber
+chain_id      = 1
+contract      = "0xAC7b5d06fa1e77D08aea40d46cB7C5923A87A0cc"
+poll_interval_s   = 1.0            # block-poll cadence — 1.0 is fine on Alchemy / your own node
+request_timeout_s = 5.0            # fail-fast so a fallback can kick in
+
+[wallet]
+# key_file     = "C:/path/to/burner.key"   # OR set HASH256_PRIVATE_KEY in the environment
+# miner_address = "0xYourAddress"           # read-only / dry-run if no key is given
+
+[gpu]
+devices    = "all"                 # "all" (every GPU), or a list of flat indices, e.g. [0, 1]  (see `hashminer devices`)
+# local_size = 64                  # OpenCL work-group size (auto if unset; 64 is a good default on NVIDIA)
+
+[behaviour]
+dry_run            = false         # true = build & sign txs but never broadcast
+confirmations      = 1
+log_level          = "INFO"
+submit_concurrency = 4             # parallel single-tx submissions (when [bundle].enabled = false)
+
+[gas]
+priority_gwei        = 3.0         # maxPriorityFeePerGas (3.0 ≈ on-chain median for SUCCESSFUL mines)
+max_fee_gwei         = 50.0        # hard cap: skip a submission if needed maxFeePerGas exceeds this (null = no cap)
+base_fee_multiplier  = 3.0         # maxFeePerGas = baseFee * this + priority — 3x is healthy headroom
+# gas_limit          = 250000      # AGGRESSIVE MODE: setting this BYPASSES the estimate_gas RPC call entirely.
+                                   # Every found nonce gets submitted; some will revert on-chain with
+                                   # BlockCapReached (small wasted gas), but you stop skipping winners.
+                                   # Recommended once the block-cap race is the dominant skip reason.
+gas_limit_multiplier = 1.30
+
+[profitability]
+# skip_if_basefee_above_gwei = 30.0   # don't submit while baseFee is above this (null = never skip on price).
+                                       # A true HASH-denominated break-even check needs a HASH/ETH price feed.
+max_pending_per_epoch = 1000        # MAX_MINTS_PER_BLOCK * EPOCH_BLOCKS = 10 * 100
+
+# --------------------------------------------------------------------------- bundle mode
+# OPT-IN. When enabled, instead of submitting each found nonce as a single tx, the miner
+# buffers solutions and on every new block ships up to `size` of them as one atomic
+# `eth_sendBundle` to MEV builders (Flashbots / Beaverbuild / Titan / Rsync / securerpc).
+# A bundle that lands gets all N txs included consecutively — the proven way to sweep a
+# block's 10 slots from a single address. The bundle's txs are ALSO broadcast to the
+# regular RPC as a safety net so a missed bundle doesn't leave the tx-nonce queue stuck.
+#
+# Requires a private key (HASH256_PRIVATE_KEY). A separate ephemeral key signs Flashbots
+# requests (X-Flashbots-Signature); it holds no balance.
+#
+# [bundle]
+# enabled              = true
+# size                 = 10        # txs per bundle (per-block cap is 10)
+# target_blocks_ahead  = 1         # target block N+1 on every new block tick
+# priority_gwei        = 5.0       # overrides [gas].priority_gwei for bundle txs (null = reuse it)
+# submit_concurrency   = 4
+# endpoints = [
+#     "https://relay.flashbots.net",
+#     "https://rpc.beaverbuild.org",
+#     "https://rpc.titanbuilder.xyz",
+#     "https://rpc.rsync-builder.xyz",
+#     "https://api.securerpc.com/v1",
+# ]

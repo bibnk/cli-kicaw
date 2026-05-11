@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.env
+*.key
+.pytest_cache/
+
+# user configuration — copy miner.example.toml -> miner.toml and edit locally.
+# We keep miner.toml gitignored so RPC API keys / personal settings never leak.
+miner.toml
+
