@@ -34,11 +34,11 @@ _ENV_KEY = "HASH256_PRIVATE_KEY"
 
 @dataclass
 class GasConfig:
-    priority_gwei: float = 6.0            # maxPriorityFeePerGas; aggressive default for competitive mining
-    max_fee_gwei: float | None = 50.0     # hard cap on maxFeePerGas; skip a submission if the
+    priority_gwei: float = 10.0           # maxPriorityFeePerGas; aggressive default for high competition
+    max_fee_gwei: float | None = 100.0    # hard cap on maxFeePerGas; skip a submission if the
                                           # needed maxFee (baseFee*base_fee_mult + priority) exceeds it
     base_fee_multiplier: float = 3.0      # headroom over the current baseFee (3x lets retargets not strand a tx)
-    gas_limit: int | None = None          # override; None => estimate * gas_limit_multiplier
+    gas_limit: int | None = 250000        # aggressive default: bypass estimate_gas for found nonces
                                           # set this (e.g. 250000) to BYPASS estimate_gas entirely:
                                           # submit every found nonce, accept some on-chain BlockCapReached reverts
                                           # in exchange for never skipping a nonce that would have landed.
@@ -92,7 +92,7 @@ class Config:
     # gpu
     gpu_devices: object = "all"           # "all" | list[int]
     local_size: int | None = 256           # RTX/NVIDIA-friendly default; tune with `hashminer bench --tune-local-size`
-    batch_target_ms: float = 250.0         # target kernel launch duration; higher = less host overhead
+    batch_target_ms: float = 500.0         # target kernel launch duration; higher = less host overhead
 
     # behaviour
     dry_run: bool = False

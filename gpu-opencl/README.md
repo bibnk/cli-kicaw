@@ -56,7 +56,11 @@ Use this on a brand-new GPU VPS. The commands assume Ubuntu/Debian and the repo 
 ```bash
 # 1) System packages
 apt update
-apt install -y git python3 python3-venv python3-pip ocl-icd-opencl-dev clinfo screen
+apt install -y software-properties-common
+add-apt-repository -y ppa:deadsnakes/ppa
+apt update
+apt install -y python3.11 python3.11-venv python3.11-dev
+apt install -y git python3-pip ocl-icd-opencl-dev clinfo screen
 
 # 2) Confirm the provider's NVIDIA driver is visible (install/enable driver first if this fails)
 nvidia-smi
@@ -66,9 +70,9 @@ clinfo | head -80
 cd /root
 git clone https://github.com/bibnk/cli-kicaw.git
 cd /root/cli-kicaw/gpu-opencl
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -U pip
+python -m pip install -U pip setuptools wheel
 pip install -e .
 
 # 4) Sanity-check GPU + kernel correctness
@@ -95,16 +99,16 @@ local_size = 256          # replace with BEST local_size from benchmark if diffe
 batch_target_ms = 500.0
 
 [gas]
-priority_gwei = 6.0
+priority_gwei = 10.0
 gas_limit = 250000
-max_fee_gwei = 80.0
+max_fee_gwei = 100.0
 base_fee_multiplier = 3.0
 
 [bundle]
 enabled = true
 size = 10
 target_blocks_ahead = 1
-priority_gwei = 6.0
+priority_gwei = 10.0
 ```
 
 Set a **burner wallet** key and a premium/low-latency RPC, then run:
@@ -170,7 +174,7 @@ Key points:
 - `gpu.devices` = `"all"` (every GPU) or a list of indices from `hashminer devices`, e.g. `[0, 1]`.
 - `gpu.local_size` defaults to `256` for RTX/NVIDIA. Run `hashminer bench --tune-local-size --seconds 3`
   and set the reported winner (often `128`, `256`, or `512` depending on driver/GPU).
-- `gpu.batch_target_ms` defaults to `250`. Increase to `500` for maximum raw H/s; lower to `80-120`
+- `gpu.batch_target_ms` defaults to `500`. Lower to `80-120`
   if you prefer faster reaction to job changes.
 - **`gas.gas_limit = 250000`** (uncomment in `miner.toml`) — aggressive mode. Bypasses `estimate_gas`,
   accepts some on-chain `BlockCapReached` reverts in exchange for never skipping a solution that
@@ -190,7 +194,7 @@ Enable in `miner.toml`:
 enabled              = true
 size                 = 10        # txs per bundle (per-block cap is 10)
 target_blocks_ahead  = 1         # target block N+1 on each new block tick
-priority_gwei        = 6.0       # overrides [gas].priority_gwei for bundle txs
+priority_gwei        = 10.0      # overrides [gas].priority_gwei for bundle txs
 ```
 
 A fresh ephemeral key is generated at startup for `X-Flashbots-Signature` (no balance, just for
@@ -241,7 +245,7 @@ hashminer run --config miner.toml --log-level DEBUG
 hashminer run --bundle
 
 # 3b) Bundle mode with a fatter tip (helps win the bundle slot when builders see competing bundles):
-hashminer run --bundle --bundle-priority-gwei 6
+hashminer run --bundle --bundle-priority-gwei 10
 
 # 3c) Smaller bundles (e.g. 5 txs per block) — useful if you want to leave room for other
 #     activity from the same wallet, or to test the path:
@@ -289,7 +293,7 @@ All map onto fields in `miner.toml`; env wins over toml. Useful for CI / contain
 | `HASH256_LOG_LEVEL` | `behaviour.log_level` | `DEBUG` |
 | `HASH256_BUNDLE` | `bundle.enabled` | `1` / `true` |
 | `HASH256_BUNDLE_SIZE` | `bundle.size` | `10` |
-| `HASH256_BUNDLE_PRIORITY_GWEI` | `bundle.priority_gwei` | `6.0` |
+| `HASH256_BUNDLE_PRIORITY_GWEI` | `bundle.priority_gwei` | `10.0` |
 
 A `.env` file in the working directory is auto-loaded (via `python-dotenv`) — drop your `HASH256_PRIVATE_KEY=0x...` there and it never touches your shell history. `.env` is in `.gitignore`.
 
@@ -327,6 +331,6 @@ asserts a `Mined` event landed and the account's $HASH balance went up. It skips
 
 ## Tuning / notes
 
-- Default OpenCL work-group size is now 256 and batch size auto-tunes toward ~250 ms/launch, which is faster on high-end RTX cards because it reduces host/OpenCL launch overhead. For RTX 4090/5090, run `hashminer bench --tune-local-size --seconds 3`, then launch with e.g. `hashminer run --local-size 256 --batch-target-ms 500` if the higher target improves raw H/s.
+- Default OpenCL work-group size is now 256 and batch size auto-tunes toward ~500 ms/launch, which is faster on high-end RTX cards because it reduces host/OpenCL launch overhead. For RTX 4090/5090, run `hashminer bench --tune-local-size --seconds 3`, then launch with e.g. `hashminer run --local-size 256 --batch-target-ms 500` if the higher target improves raw H/s.
 - The kernel uses a straightforward reference Keccak-f[1600]; there's headroom (lane-complement trick, bit-interleaving, fully-unrolled rounds) if you want more H/s.
 - WebSocket `newHeads` (`network.ws_url`) is reserved for a future version — this one polls `eth_blockNumber` every `poll_interval_s`, which is plenty given 12 s blocks and a per-epoch (100-block) challenge.

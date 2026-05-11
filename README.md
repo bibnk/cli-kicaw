@@ -14,7 +14,11 @@ Untuk Ubuntu/Debian VPS GPU / Vast.ai:
 
 ```bash
 apt update
-apt install -y git python3 python3-venv python3-pip ocl-icd-opencl-dev clinfo screen
+apt install -y software-properties-common
+add-apt-repository -y ppa:deadsnakes/ppa
+apt update
+apt install -y python3.11 python3.11-venv python3.11-dev
+apt install -y git python3-pip ocl-icd-opencl-dev clinfo screen
 
 nvidia-smi
 clinfo | head -80
@@ -23,9 +27,9 @@ cd /root
 git clone https://github.com/bibnk/cli-kicaw.git
 cd /root/cli-kicaw/gpu-opencl
 
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -U pip
+python -m pip install -U pip setuptools wheel
 pip install -e .
 
 hashminer devices
@@ -52,16 +56,16 @@ local_size = 256          # ganti sesuai BEST local_size dari benchmark kalau be
 batch_target_ms = 500.0
 
 [gas]
-priority_gwei = 6.0
+priority_gwei = 10.0
 gas_limit = 250000
-max_fee_gwei = 80.0
+max_fee_gwei = 100.0
 base_fee_multiplier = 3.0
 
 [bundle]
 enabled = true
 size = 10
 target_blocks_ahead = 1
-priority_gwei = 6.0
+priority_gwei = 10.0
 endpoints = [
     "https://relay.flashbots.net",
     "https://rpc.beaverbuild.org",

@@ -27,7 +27,7 @@ request_timeout_s = 5.0            # fail-fast so a fallback can kick in
 [gpu]
 devices          = "all"           # "all" (every GPU), or a list of flat indices, e.g. [0, 1]  (see `hashminer devices`)
 local_size       = 256             # RTX/NVIDIA-friendly default. Tune with: hashminer bench --tune-local-size
-batch_target_ms  = 250.0           # Bigger launches reduce Python/OpenCL overhead on fast GPUs; try 250-500 on RTX 4090/5090.
+batch_target_ms  = 500.0           # Bigger launches reduce Python/OpenCL overhead on fast GPUs; try 250-500 on RTX 4090/5090.
 
 [behaviour]
 dry_run            = false         # true = build & sign txs but never broadcast
@@ -36,10 +36,10 @@ log_level          = "INFO"
 submit_concurrency = 4             # parallel single-tx submissions (when [bundle].enabled = false)
 
 [gas]
-priority_gwei        = 6.0         # maxPriorityFeePerGas; aggressive default for competitive mining
-max_fee_gwei         = 50.0        # hard cap: skip a submission if needed maxFeePerGas exceeds this (null = no cap)
+priority_gwei        = 10.0        # maxPriorityFeePerGas; aggressive default for high competition
+max_fee_gwei         = 100.0       # hard cap: skip a submission if needed maxFeePerGas exceeds this (null = no cap)
 base_fee_multiplier  = 3.0         # maxFeePerGas = baseFee * this + priority — 3x is healthy headroom
-# gas_limit          = 250000      # AGGRESSIVE MODE: setting this BYPASSES the estimate_gas RPC call entirely.
+gas_limit           = 250000      # AGGRESSIVE MODE: BYPASSES the estimate_gas RPC call entirely.
                                    # Every found nonce gets submitted; some will revert on-chain with
                                    # BlockCapReached (small wasted gas), but you stop skipping winners.
                                    # Recommended once the block-cap race is the dominant skip reason.
@@ -65,7 +65,7 @@ max_pending_per_epoch = 1000        # MAX_MINTS_PER_BLOCK * EPOCH_BLOCKS = 10 * 
 # enabled              = true
 # size                 = 10        # txs per bundle (per-block cap is 10)
 # target_blocks_ahead  = 1         # target block N+1 on every new block tick
-# priority_gwei        = 6.0       # overrides [gas].priority_gwei for bundle txs (null = reuse it)
+# priority_gwei        = 10.0      # overrides [gas].priority_gwei for bundle txs (null = reuse it)
 # submit_concurrency   = 4
 # endpoints = [
 #     "https://relay.flashbots.net",

@@ -16,6 +16,10 @@ class DummyDevice:
     _device = object()
 
 
+def test_default_batch_target_ms_is_500():
+    assert Config().batch_target_ms == 500.0
+
+
 def test_config_accepts_gpu_batch_target_ms_from_toml():
     cfg = _apply_toml(Config(), {"gpu": {"local_size": 256, "batch_target_ms": 250.0}})
 
