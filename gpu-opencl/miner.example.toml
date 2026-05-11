@@ -36,7 +36,7 @@ log_level          = "INFO"
 submit_concurrency = 4             # parallel single-tx submissions (when [bundle].enabled = false)
 
 [gas]
-priority_gwei        = 3.0         # maxPriorityFeePerGas (3.0 ≈ on-chain median for SUCCESSFUL mines)
+priority_gwei        = 6.0         # maxPriorityFeePerGas; aggressive default for competitive mining
 max_fee_gwei         = 50.0        # hard cap: skip a submission if needed maxFeePerGas exceeds this (null = no cap)
 base_fee_multiplier  = 3.0         # maxFeePerGas = baseFee * this + priority — 3x is healthy headroom
 # gas_limit          = 250000      # AGGRESSIVE MODE: setting this BYPASSES the estimate_gas RPC call entirely.

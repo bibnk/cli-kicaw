@@ -34,7 +34,7 @@ _ENV_KEY = "HASH256_PRIVATE_KEY"
 
 @dataclass
 class GasConfig:
-    priority_gwei: float = 3.0            # maxPriorityFeePerGas (3.0 = on-chain median for successful mines)
+    priority_gwei: float = 6.0            # maxPriorityFeePerGas; aggressive default for competitive mining
     max_fee_gwei: float | None = 50.0     # hard cap on maxFeePerGas; skip a submission if the
                                           # needed maxFee (baseFee*base_fee_mult + priority) exceeds it
     base_fee_multiplier: float = 3.0      # headroom over the current baseFee (3x lets retargets not strand a tx)

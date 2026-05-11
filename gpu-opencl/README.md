@@ -96,7 +96,7 @@ Enable in `miner.toml`:
 enabled              = true
 size                 = 10        # txs per bundle (per-block cap is 10)
 target_blocks_ahead  = 1         # target block N+1 on each new block tick
-priority_gwei        = 5.0       # overrides [gas].priority_gwei for bundle txs
+priority_gwei        = 6.0       # overrides [gas].priority_gwei for bundle txs
 ```
 
 A fresh ephemeral key is generated at startup for `X-Flashbots-Signature` (no balance, just for
@@ -147,7 +147,7 @@ hashminer run --config miner.toml --log-level DEBUG
 hashminer run --bundle
 
 # 3b) Bundle mode with a fatter tip (helps win the bundle slot when builders see competing bundles):
-hashminer run --bundle --bundle-priority-gwei 5
+hashminer run --bundle --bundle-priority-gwei 6
 
 # 3c) Smaller bundles (e.g. 5 txs per block) — useful if you want to leave room for other
 #     activity from the same wallet, or to test the path:
@@ -195,7 +195,7 @@ All map onto fields in `miner.toml`; env wins over toml. Useful for CI / contain
 | `HASH256_LOG_LEVEL` | `behaviour.log_level` | `DEBUG` |
 | `HASH256_BUNDLE` | `bundle.enabled` | `1` / `true` |
 | `HASH256_BUNDLE_SIZE` | `bundle.size` | `10` |
-| `HASH256_BUNDLE_PRIORITY_GWEI` | `bundle.priority_gwei` | `5.0` |
+| `HASH256_BUNDLE_PRIORITY_GWEI` | `bundle.priority_gwei` | `6.0` |
 
 A `.env` file in the working directory is auto-loaded (via `python-dotenv`) — drop your `HASH256_PRIVATE_KEY=0x...` there and it never touches your shell history. `.env` is in `.gitignore`.
 
