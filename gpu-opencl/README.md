@@ -55,6 +55,7 @@ pip install -e .                                       # add ".[dev]" for the te
 hashminer devices                                      # sanity-check OpenCL sees your GPU(s)
 hashminer selftest                                     # verify the kernel == eth_utils.keccak
 hashminer bench --device all                           # measure hashrate
+hashminer bench --device all --tune-local-size --seconds 3   # find fastest work-group size per GPU
 ```
 
 ## Configure
@@ -73,6 +74,10 @@ Key points:
   `HASH256_PRIVATE_KEY` environment variable or `wallet.key_file`. With no key set, the miner is
   read-only and forces `--dry-run`. (A `.env` file in the working directory is loaded automatically.)
 - `gpu.devices` = `"all"` (every GPU) or a list of indices from `hashminer devices`, e.g. `[0, 1]`.
+- `gpu.local_size` defaults to `256` for RTX/NVIDIA. Run `hashminer bench --tune-local-size --seconds 3`
+  and set the reported winner (often `128`, `256`, or `512` depending on driver/GPU).
+- `gpu.batch_target_ms` defaults to `250`. Increase to `500` for maximum raw H/s; lower to `80-120`
+  if you prefer faster reaction to job changes.
 - **`gas.gas_limit = 250000`** (uncomment in `miner.toml`) — aggressive mode. Bypasses `estimate_gas`,
   accepts some on-chain `BlockCapReached` reverts in exchange for never skipping a solution that
   would have landed. Recommended once you're competing for real.
@@ -103,8 +108,8 @@ so a missed bundle doesn't leave the tx-nonce queue stuck.
 ```
 hashminer devices                                  # list OpenCL platforms / devices (flat indices)
 hashminer selftest  [--device IDX]                 # kernel == eth_utils.keccak (KAT + roundtrip)
-hashminer bench     [--device all|0,2] [--seconds 5.0]   # per-device + total MH/s
-hashminer run       [flags below]                  # the miner
+hashminer bench     [--device all|0,2] [--seconds 5.0] [--tune-local-size]   # per-device + total MH/s
+hashminer run       [flags below] [--local-size 256] [--batch-target-ms 250] # the miner
 ```
 
 `hashminer run` flags:
@@ -228,6 +233,6 @@ asserts a `Mined` event landed and the account's $HASH balance went up. It skips
 
 ## Tuning / notes
 
-- Default OpenCL work-group size is 64 (good on NVIDIA); override with `gpu.local_size`. Batch size auto-tunes toward ~80 ms/launch so workers react quickly to new epochs.
+- Default OpenCL work-group size is now 256 and batch size auto-tunes toward ~250 ms/launch, which is faster on high-end RTX cards because it reduces host/OpenCL launch overhead. For RTX 4090/5090, run `hashminer bench --tune-local-size --seconds 3`, then launch with e.g. `hashminer run --local-size 256 --batch-target-ms 500` if the higher target improves raw H/s.
 - The kernel uses a straightforward reference Keccak-f[1600]; there's headroom (lane-complement trick, bit-interleaving, fully-unrolled rounds) if you want more H/s.
 - WebSocket `newHeads` (`network.ws_url`) is reserved for a future version — this one polls `eth_blockNumber` every `poll_interval_s`, which is plenty given 12 s blocks and a per-epoch (100-block) challenge.

@@ -109,18 +109,39 @@ def selftest(device_idx: int | None) -> None:
 @main.command()
 @click.option("--device", "device_spec", default="all", help='"all" (default), or a comma list of indices, e.g. "0,2".')
 @click.option("--seconds", type=float, default=5.0, show_default=True, help="Benchmark duration per device.")
-def bench(device_spec: str, seconds: float) -> None:
+@click.option("--local-size", type=int, default=None,
+              help="OpenCL work-group size to benchmark (default: miner default).")
+@click.option("--batch-target-ms", type=float, default=250.0, show_default=True,
+              help="Target kernel-launch duration used by adaptive batching.")
+@click.option("--tune-local-size", is_flag=True,
+              help="Try common work-group sizes and print the fastest one for each GPU.")
+def bench(device_spec: str, seconds: float, local_size: int | None, batch_target_ms: float, tune_local_size: bool) -> None:
     """Measure Keccak-256 search hashrate for each selected device (and the total)."""
     _setup_logging("WARNING")
     from .gpu import GpuWorker, select_devices
     spec = "all" if device_spec.strip().lower() == "all" else [int(x) for x in device_spec.replace(" ", "").split(",") if x]
     devs = select_devices(spec)
     total = 0.0
+    candidates = [32, 64, 128, 256, 512] if tune_local_size else [local_size]
     for d in devs:
-        w = GpuWorker(d)
-        mhps = w.benchmark(seconds)
+        best = (0.0, None, None)
+        for ls in candidates:
+            if ls is not None and ls > d.max_work_group_size:
+                continue
+            w = GpuWorker(d, local_size=ls, batch_target_ms=batch_target_ms)
+            mhps = w.benchmark(seconds)
+            if tune_local_size:
+                click.echo(f"[{d.index}] {d.name}: local_size={w.local_size:<4} {mhps:,.0f} MH/s  (batch 2^{w.batch_size.bit_length()-1})")
+            if mhps > best[0]:
+                best = (mhps, w.local_size, w.batch_size)
+        mhps, best_ls, best_batch = best
+        if best_ls is None or best_batch is None:
+            raise SystemExit(f"no valid local_size candidates for device {d.index}")
         total += mhps
-        click.echo(f"[{d.index}] {d.name}: {mhps:,.0f} MH/s  (batch 2^{w.batch_size.bit_length()-1})")
+        if tune_local_size:
+            click.echo(f"[{d.index}] BEST local_size={best_ls}: {mhps:,.0f} MH/s  (batch 2^{best_batch.bit_length()-1})")
+        else:
+            click.echo(f"[{d.index}] {d.name}: {mhps:,.0f} MH/s  local_size={best_ls}  (batch 2^{best_batch.bit_length()-1})")
     if len(devs) > 1:
         click.echo(f"TOTAL: {total:,.0f} MH/s")
     # context: initial on-chain difficulty needs the top 32 bits of the digest == 0 (1 in 2^32).
@@ -135,6 +156,8 @@ def bench(device_spec: str, seconds: float) -> None:
 @click.option("--dry-run/--no-dry-run", default=None, help="Build & sign txs but never broadcast.")
 @click.option("--rpc", "rpc_url", default=None, help="Override the RPC URL.")
 @click.option("--devices", "device_spec", default=None, help='Override GPU devices: "all" or a comma list.')
+@click.option("--local-size", type=int, default=None, help="Override OpenCL work-group size, e.g. 128/256/512.")
+@click.option("--batch-target-ms", type=float, default=None, help="Override adaptive batch target duration in ms.")
 @click.option("--log-level", default=None, help="DEBUG / INFO / WARNING / ERROR.")
 @click.option("--bundle/--no-bundle", "bundle", default=None,
               help="Toggle eth_sendBundle mode to MEV builders (overrides [bundle].enabled in miner.toml).")
@@ -142,7 +165,7 @@ def bench(device_spec: str, seconds: float) -> None:
               help="Txs per bundle (default 10; per-block cap is 10).")
 @click.option("--bundle-priority-gwei", type=float, default=None,
               help="Priority fee for bundled txs (overrides [gas].priority_gwei when bundling).")
-def run(config_path, dry_run, rpc_url, device_spec, log_level, bundle, bundle_size, bundle_priority_gwei) -> None:
+def run(config_path, dry_run, rpc_url, device_spec, local_size, batch_target_ms, log_level, bundle, bundle_size, bundle_priority_gwei) -> None:
     """Start mining: poll the contract, brute-force nonces on the GPU, submit mine() txs."""
     from .config import Config
     from .miner import Miner
@@ -152,6 +175,10 @@ def run(config_path, dry_run, rpc_url, device_spec, log_level, bundle, bundle_si
         cfg.rpc_url = rpc_url
     if device_spec:
         cfg.gpu_devices = "all" if device_spec.strip().lower() == "all" else [int(x) for x in device_spec.replace(" ", "").split(",") if x]
+    if local_size is not None:
+        cfg.local_size = local_size
+    if batch_target_ms is not None:
+        cfg.batch_target_ms = batch_target_ms
     if dry_run is not None:
         cfg.dry_run = dry_run
     if log_level:

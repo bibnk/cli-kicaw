@@ -26,11 +26,11 @@ except Exception:  # pragma: no cover
 log = logging.getLogger("hashminer.gpu")
 
 KERNEL_NAME = "keccak_pow_search"
-_DEFAULT_LOCAL_SIZE = 64
+_DEFAULT_LOCAL_SIZE = 256
 _DEFAULT_MAX_RESULTS = 4096
 _MIN_BATCH = 1 << 18
 _MAX_BATCH = 1 << 28
-_TARGET_BATCH_MS = 80.0  # keep each launch short so workers react to new epochs/blocks quickly
+_TARGET_BATCH_MS = 250.0  # larger launches reduce Python/OpenCL overhead on fast RTX cards
 
 
 def _require_cl() -> None:
@@ -64,7 +64,13 @@ def list_devices() -> list[DeviceInfo]:
     _require_cl()
     out: list[DeviceInfo] = []
     i = 0
-    for plat in cl.get_platforms():
+    try:
+        platforms = cl.get_platforms()
+    except Exception as exc:  # noqa: BLE001 - no OpenCL ICD/platform installed on CI/headless boxes
+        if "PLATFORM_NOT_FOUND" in str(exc):
+            return []
+        raise
+    for plat in platforms:
         for dev in plat.get_devices():
             out.append(DeviceInfo(
                 index=i,
@@ -133,7 +139,8 @@ class GpuWorker:
     """One OpenCL device. Not thread-safe; the farm gives each worker its own thread."""
 
     def __init__(self, info: DeviceInfo, *, kernel_src: str | None = None,
-                 local_size: int | None = None, max_results: int = _DEFAULT_MAX_RESULTS):
+                 local_size: int | None = None, max_results: int = _DEFAULT_MAX_RESULTS,
+                 batch_target_ms: float | None = None):
         _require_cl()
         import warnings
         warnings.filterwarnings("ignore", category=cl.CompilerWarning)  # NVIDIA emits a benign note
@@ -145,11 +152,12 @@ class GpuWorker:
         ls = local_size or _DEFAULT_LOCAL_SIZE
         self.local_size = max(1, min(ls, info.max_work_group_size))
         self.max_results = max_results
+        self.batch_target_ms = float(batch_target_ms or _TARGET_BATCH_MS)
         mf = cl.mem_flags
         self._out_count = cl.Buffer(self.ctx, mf.READ_WRITE, 4)
         self._out_nonces = cl.Buffer(self.ctx, mf.WRITE_ONLY, max_results * 4 * 8)
         self._salt = secrets.randbits(64)  # high-order tag so devices never share a nonce range
-        self.batch_size = 1 << 22
+        self.batch_size = 1 << 24
         self.total_hashes = 0
         self.total_seconds = 0.0
 
@@ -198,7 +206,7 @@ class GpuWorker:
     def _adapt_batch(self, last_seconds: float) -> None:
         if last_seconds <= 0:
             return
-        scaled = int(self.batch_size * (_TARGET_BATCH_MS / 1000.0) / last_seconds)
+        scaled = int(self.batch_size * (self.batch_target_ms / 1000.0) / last_seconds)
         self.batch_size = max(_MIN_BATCH, min(_MAX_BATCH, scaled or _MIN_BATCH))
 
     @property
@@ -231,9 +239,10 @@ class GpuFarm:
     """
 
     def __init__(self, devices: list[DeviceInfo], *, kernel_src: str | None = None,
-                 local_size: int | None = None):
+                 local_size: int | None = None, batch_target_ms: float | None = None):
         kernel_src = kernel_src or load_kernel_source()
-        self.workers = [GpuWorker(d, kernel_src=kernel_src, local_size=local_size) for d in devices]
+        self.workers = [GpuWorker(d, kernel_src=kernel_src, local_size=local_size,
+                                  batch_target_ms=batch_target_ms) for d in devices]
         self.results: queue.Queue[Found] = queue.Queue()
         self._lock = threading.Lock()
         self._job: tuple[bytes, int, int] | None = None  # (challenge, target, epoch)

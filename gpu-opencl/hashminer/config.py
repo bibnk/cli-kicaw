@@ -93,7 +93,8 @@ class Config:
 
     # gpu
     gpu_devices: object = "all"           # "all" | list[int]
-    local_size: int | None = None
+    local_size: int | None = 256           # RTX/NVIDIA-friendly default; tune with `hashminer bench --tune-local-size`
+    batch_target_ms: float = 250.0         # target kernel launch duration; higher = less host overhead
 
     # behaviour
     dry_run: bool = False
@@ -195,6 +196,7 @@ def _apply_toml(cfg: Config, data: dict) -> Config:
         miner_address=pick(wal, "miner_address", cfg.miner_address),
         gpu_devices=pick(g, "devices", cfg.gpu_devices),
         local_size=pick(g, "local_size", cfg.local_size),
+        batch_target_ms=pick(g, "batch_target_ms", cfg.batch_target_ms),
         dry_run=pick(beh, "dry_run", cfg.dry_run),
         confirmations=pick(beh, "confirmations", cfg.confirmations),
         log_level=pick(beh, "log_level", cfg.log_level),
@@ -242,6 +244,10 @@ def _apply_env(cfg: Config) -> Config:
         cfg.miner_address = v
     if v := e("HASH256_GPU_DEVICES"):
         cfg.gpu_devices = "all" if v.strip().lower() == "all" else [int(x) for x in v.replace(" ", "").split(",") if x != ""]
+    if v := e("HASH256_GPU_LOCAL_SIZE"):
+        cfg.local_size = int(v)
+    if v := e("HASH256_GPU_BATCH_TARGET_MS"):
+        cfg.batch_target_ms = float(v)
     if v := e("HASH256_DRY_RUN"):
         cfg.dry_run = v.strip().lower() in ("1", "true", "yes", "on")
     if v := e("HASH256_LOG_LEVEL"):

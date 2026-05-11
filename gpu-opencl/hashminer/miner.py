@@ -68,7 +68,8 @@ class Miner:
                 log.warning("bundle.enabled with no key + dry_run: bundle path disabled (would have nothing to sign)")
             else:
                 self.bundle_submitter = BundleSubmitter(cfg, self.chain, acct)
-        self.farm = GpuFarm(select_devices(cfg.gpu_devices), local_size=cfg.local_size)
+        self.farm = GpuFarm(select_devices(cfg.gpu_devices), local_size=cfg.local_size,
+                            batch_target_ms=cfg.batch_target_ms)
         self._lock = threading.Lock()
         self._job: _Job | None = None
         self._stop = threading.Event()

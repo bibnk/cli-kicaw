@@ -25,8 +25,9 @@ request_timeout_s = 5.0            # fail-fast so a fallback can kick in
 # miner_address = "0xYourAddress"           # read-only / dry-run if no key is given
 
 [gpu]
-devices    = "all"                 # "all" (every GPU), or a list of flat indices, e.g. [0, 1]  (see `hashminer devices`)
-# local_size = 64                  # OpenCL work-group size (auto if unset; 64 is a good default on NVIDIA)
+devices          = "all"           # "all" (every GPU), or a list of flat indices, e.g. [0, 1]  (see `hashminer devices`)
+local_size       = 256             # RTX/NVIDIA-friendly default. Tune with: hashminer bench --tune-local-size
+batch_target_ms  = 250.0           # Bigger launches reduce Python/OpenCL overhead on fast GPUs; try 250-500 on RTX 4090/5090.
 
 [behaviour]
 dry_run            = false         # true = build & sign txs but never broadcast
