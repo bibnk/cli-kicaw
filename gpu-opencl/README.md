@@ -48,6 +48,100 @@ chain.py  ──poll eth_blockNumber & miningState()──▶  miner.py  ──s
 
 Requires Python ≥ 3.11 and working **OpenCL** (GPU vendor driver + ICD; NVIDIA's CUDA toolkit, AMD's ROCm/Adrenalin, or Intel's runtime all ship one).
 
+### Fresh Ubuntu/Vast.ai GPU VPS quickstart
+
+Use this on a brand-new GPU VPS. The commands assume Ubuntu/Debian and the repo path
+`/root/cli-kicaw/gpu-opencl`.
+
+```bash
+# 1) System packages
+apt update
+apt install -y git python3 python3-venv python3-pip ocl-icd-opencl-dev clinfo screen
+
+# 2) Confirm the provider's NVIDIA driver is visible (install/enable driver first if this fails)
+nvidia-smi
+clinfo | head -80
+
+# 3) Clone and install miner
+cd /root
+git clone https://github.com/bibnk/cli-kicaw.git
+cd /root/cli-kicaw/gpu-opencl
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -e .
+
+# 4) Sanity-check GPU + kernel correctness
+hashminer devices
+hashminer selftest
+
+# 5) Find fastest OpenCL work-group size for this VPS/GPU
+hashminer bench --device all --tune-local-size --seconds 3
+```
+
+Then create config:
+
+```bash
+cp miner.example.toml miner.toml
+nano miner.toml
+```
+
+Recommended competitive config:
+
+```toml
+[gpu]
+devices = "all"
+local_size = 256          # replace with BEST local_size from benchmark if different
+batch_target_ms = 500.0
+
+[gas]
+priority_gwei = 6.0
+gas_limit = 250000
+max_fee_gwei = 80.0
+base_fee_multiplier = 3.0
+
+[bundle]
+enabled = true
+size = 10
+target_blocks_ahead = 1
+priority_gwei = 6.0
+```
+
+Set a **burner wallet** key and a premium/low-latency RPC, then run:
+
+```bash
+export HASH256_PRIVATE_KEY=0xPRIVATEKEY_KAMU
+export HASH256_RPC_URL=RPC_PREMIUM_KAMU
+
+hashminer run --devices all --local-size 256 --batch-target-ms 500 --bundle
+```
+
+Run inside `screen` so it keeps mining after disconnect:
+
+```bash
+screen -S hash256
+cd /root/cli-kicaw/gpu-opencl
+source .venv/bin/activate
+export HASH256_PRIVATE_KEY=0xPRIVATEKEY_KAMU
+export HASH256_RPC_URL=RPC_PREMIUM_KAMU
+hashminer run --devices all --local-size 256 --batch-target-ms 500 --bundle
+```
+
+Detach from screen: `Ctrl+A` then `D`. Re-attach: `screen -r hash256`.
+
+### Update an existing VPS
+
+```bash
+cd /root/cli-kicaw
+git pull origin main
+cd /root/cli-kicaw/gpu-opencl
+source .venv/bin/activate
+pip install -e .
+
+hashminer bench --device all --tune-local-size --seconds 3
+hashminer run --devices all --local-size 256 --batch-target-ms 500 --bundle
+```
+
 ```bash
 cd hash256-miner
 python -m venv .venv && . .venv/Scripts/activate      # Windows;  on Linux/macOS: source .venv/bin/activate
